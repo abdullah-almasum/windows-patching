@@ -1,0 +1,53 @@
+- name: Test Windows Patching and Reboot Host
+  hosts: all
+  gather_facts: no
+
+  tasks:
+    - name: Ping Windows host using WinRM
+      win_ping:
+      register: winrm_ping
+      ignore_errors: yes
+
+    - name: Log WinRM connectivity failure
+      debug:
+        msg: "WinRM connectivity to {{ inventory_hostname }} failed."
+      when: winrm_ping.failed
+
+    - name: Search for Security and Critical Updates
+      win_updates:
+        category_names:
+          - SecurityUpdates
+          - CriticalUpdates
+          - DefinitionUpdates
+        state: searched
+      register: update_results
+      when: not winrm_ping.failed
+
+    - name: Install Security and Critical Updates
+      win_updates:
+        category_names:
+          - SecurityUpdates
+          - CriticalUpdates
+          - DefinitionUpdates
+        reboot: yes
+        reboot_timeout: 600
+      register: install_results
+      when: not winrm_ping.failed
+
+    - name: Wait for the host to reboot and reconnect
+      wait_for_connection:
+        timeout: 900
+      when: not winrm_ping.failed
+
+    - name: Show summary of updates processed
+      debug:
+        msg:
+          - "Windows Update Summary for {{ inventory_hostname }}:"
+          - "Found: {{ update_results.found_update_count }}"
+          - "Installed: {{ update_results.installed_update_count }}"
+          - "Skipped (Filtered):"
+          - >-
+            {% for update in update_results.filtered_updates.values() %}
+              - {{ update.title }}
+            {% endfor %}
+      when: not winrm_ping.failed
