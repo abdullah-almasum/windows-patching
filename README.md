@@ -30,4 +30,5 @@ all:
           ansible_port: 5985
 
 #Run the Playbook
+-----------------
 ansible-playbook -i inventory.yml winpatch.yml
