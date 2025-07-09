@@ -1,0 +1,43 @@
+# Ansible backup and temporary files
+*.retry
+*.log
+*.bak
+*.tmp
+*.swp
+*.tar.gz
+*.zip
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# SSH keys and secrets
+*.pem
+*.key
+*.crt
+*.env
+secrets.yml
+vault_pass.txt
+
+# AAP-specific files
+*.cfg
+*.lock
+.git-credentials
+
+# Roles downloaded externally
+roles/*
+
+# Inventory variables (optional)
+host_vars/
+group_vars/
+inventory.yml
+credentials.yml
+
+# Galaxy collections cache
+collections/ansible_collections/*/.galaxy_install_info
