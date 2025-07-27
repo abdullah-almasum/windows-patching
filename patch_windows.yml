@@ -1,0 +1,63 @@
+---
+- name: Controlled Windows Patching and Reboot
+  hosts: all
+  gather_facts: no
+  collections:
+    - ansible.windows
+
+  tasks:
+    - name: Ping Windows host using WinRM
+      win_ping:
+      register: winrm_ping
+      ignore_errors: yes
+
+    - name: Log WinRM connectivity failure
+      debug:
+        msg: "WinRM connectivity to {{ inventory_hostname }} failed."
+      when: winrm_ping.failed
+
+    - name: Search for Security and Critical Updates
+      win_updates:
+        category_names:
+          - SecurityUpdates
+          - CriticalUpdates
+          - DefinitionUpdates
+        state: searched
+      register: update_results
+      when: not winrm_ping.failed
+
+    - name: Install Security and Critical Updates (without reboot)
+      win_updates:
+        category_names:
+          - SecurityUpdates
+          - CriticalUpdates
+          - DefinitionUpdates
+        reboot: no
+      register: install_results
+      when: not winrm_ping.failed
+
+    - name: Show summary of updates processed
+      debug:
+        msg:
+          - "Windows Update Summary for {{ inventory_hostname }}:"
+          - "Total Found: {{ update_results.found_update_count }}"
+          - "Total Installed: {{ install_results.installed_update_count }}"
+          - "Skipped (Filtered):"
+          - >-
+            {% for update in update_results.filtered_updates.values() %}
+              - {{ update.title }}
+            {% endfor %}
+      when: not winrm_ping.failed
+
+    - name: Reboot the host if required
+      win_reboot:
+        reboot_timeout: 900
+        shutdown_timeout: 60
+        connect_timeout: 60
+        msg: "System will reboot to complete patching."
+      when: install_results.reboot_required and not winrm_ping.failed
+
+    - name: Wait for host to come back after reboot
+      wait_for_connection:
+        timeout: 900
+      when: install_results.reboot_required and not winrm_ping.failed
