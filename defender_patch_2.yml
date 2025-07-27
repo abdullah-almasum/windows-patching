@@ -1,0 +1,14 @@
+---
+- name: Install Microsoft Defender Antivirus Update
+  hosts: windows
+  gather_facts: no
+  tasks:
+    - name: Trigger Microsoft Defender update
+      win_command: >
+        "%ProgramFiles%\Windows Defender\MpCmdRun.exe" -SignatureUpdate
+      register: defender_update
+
+    - name: Show update result
+      debug:
+        var: defender_update.stdout_lines
+
