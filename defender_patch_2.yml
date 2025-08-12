@@ -1,0 +1,28 @@
+---
+- name: Install Microsoft Defender Definition Updates via Windows Update
+  hosts: windows
+  gather_facts: no
+  collections:
+    - ansible.windows
+
+  tasks:
+    - name: Ping host to verify WinRM
+      win_ping:
+
+    - name: Install only Defender Antivirus Updates
+      win_updates:
+        category_names:
+          - DefinitionUpdates
+        reboot: no
+      register: defender_updates
+
+    - name: Show Defender update summary
+      debug:
+        msg:
+          - "Defender Update Status for {{ inventory_hostname }}:"
+          - "Updates Installed: {{ defender_updates.installed_update_count }}"
+          - >-
+            {% for update in defender_updates.installed_updates %}
+              - {{ update.title }}
+            {% endfor %}
+

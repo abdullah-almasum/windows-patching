@@ -1,0 +1,47 @@
+---
+- name: Install Microsoft Defender Antivirus Updates Only
+  hosts: all
+  gather_facts: no
+  collections:
+    - ansible.windows
+
+  tasks:
+    - name: Ping Windows host using WinRM
+      win_ping:
+      register: winrm_ping
+      ignore_errors: yes
+
+    - name: Log WinRM connectivity failure
+      debug:
+        msg: "WinRM connectivity to {{ inventory_hostname }} failed."
+      when: winrm_ping.failed
+
+    - name: Search for Defender Updates Only
+      win_updates:
+        category_names:
+          - DefinitionUpdates
+        state: searched
+      register: defender_updates
+      when: not winrm_ping.failed
+
+    - name: Install Defender Updates (without reboot)
+      win_updates:
+        category_names:
+          - DefinitionUpdates
+        reboot: no
+      register: defender_install_results
+      when: not winrm_ping.failed
+
+    - name: Show summary of Defender updates
+      debug:
+        msg:
+          - "Defender Update Summary for {{ inventory_hostname }}:"
+          - "Total Found: {{ defender_updates.found_update_count }}"
+          - "Total Installed: {{ defender_install_results.installed_update_count }}"
+          - "Update Titles:"
+          - >-
+            {% for update in defender_updates.filtered_updates.values() %}
+              - {{ update.title }}
+            {% endfor %}
+      when: not winrm_ping.failed
+
